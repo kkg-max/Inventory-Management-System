@@ -3,6 +3,7 @@
 const Product = require("../models/products.model");
 const Counter = require("../models/counter.model");
 const ApiError = require("../Utils/ApiError");
+const mongoose = require("mongoose");
 
 
 const createProduct = async (req, res, next) => {
@@ -57,28 +58,53 @@ const createProduct = async (req, res, next) => {
             });
         }
 
-        // 5. Create product
-        const product = await Product.create({
-            name: name.trim(),
-            price,
-            quantity,
-            category: category.trim(),
-            description
-        });
+        // 5. Start MongoDB session
+        const session = await mongoose.startSession();
 
-        // 6. Update total product count
-        const counter = await Counter.findOneAndUpdate(
-            { _id: "productId" },
-            { $inc: { totalProducts: 1 } },
-            { new: true, upsert: true }
-        );
+        let product;
+        let counter;
 
-        res.status(201).json({
-            success: true,
-            message: "Product created successfully",
-            data: product,
-            totalProducts: counter.totalProducts
-        });
+        try {
+            // 6. Execute database operations in a transaction
+            await session.withTransaction(async () => {
+
+                // Create product
+                product = new Product({
+                    name: name.trim(),
+                    price,
+                    quantity,
+                    category: category.trim(),
+                    description
+                });
+
+                // Save product using transaction session
+                await product.save({ session });
+
+                // Update total product count
+                counter = await Counter.findOneAndUpdate(
+                    { _id: "productId" },
+                    { $inc: { totalProducts: 1 } },
+                    {
+                        new: true,
+                        upsert: true,
+                        session
+                    }
+                );
+
+            });
+
+            // Transaction successfully committed
+            res.status(201).json({
+                success: true,
+                message: "Product created successfully",
+                data: product,
+                totalProducts: counter.totalProducts
+            });
+
+        } finally {
+            // Always close the session
+            await session.endSession();
+        }
 
     } catch (error) {
         next(error);
@@ -330,19 +356,33 @@ const updateSomeInfo = async (req, res, next) => {
 
 
 
+
 const deleteAllProducts = async (req, res, next) => {
+    const session = await mongoose.startSession();
+
     try {
-        // 1. Delete all products
-        const result = await Product.deleteMany({});
+        let result;
+        let counter;
 
-        // 2. Reset current product count
-        const counter = await Counter.findOneAndUpdate(
-            { _id: "productId" },
-            { $set: { totalProducts: 0 } },
-            { new: true, upsert: true }
-        );
+        await session.withTransaction(async () => {
 
-        // 3. Send response
+            // 1. Delete all products
+            result = await Product.deleteMany({}).session(session);
+
+            // 2. Reset current product count
+            counter = await Counter.findOneAndUpdate(
+                { _id: "productId" },
+                { $set: { totalProducts: 0 } },
+                {
+                    new: true,
+                    upsert: true,
+                    session
+                }
+            );
+
+        });
+
+        // 3. Send response after successful commit
         res.status(200).json({
             success: true,
             message: "All products deleted successfully",
@@ -352,30 +392,61 @@ const deleteAllProducts = async (req, res, next) => {
 
     } catch (error) {
         next(error);
+    } finally {
+        await session.endSession();
     }
 };
 
 
+
+
 const deleteProductById = async (req, res, next) => {
+    const session = await mongoose.startSession();
+
     try {
         const { productId } = req.params;
 
-        // 1. Find and delete product
-        const product = await Product.findOneAndDelete({ productId });
+        let product;
+        let counter;
 
-        // 2. Check if product exists
-        if (!product) {
-            throw new ApiError(404, "Product not found");
-        }
+        await session.withTransaction(async () => {
 
-        // 3. Decrease total product count
-        const counter = await Counter.findOneAndUpdate(
-            { _id: "productId" },
-            { $inc: { totalProducts: -1 } },
-            { new: true }
-        );
+            // 1. Find and delete product
+            product = await Product.findOneAndDelete(
+                { productId },
+                { session }
+            );
 
-        // 4. Send response
+            // 2. Check if product exists
+            if (!product) {
+                throw new ApiError(404, "Product not found");
+            }
+
+            // 3. Decrease total product count
+            counter = await Counter.findOneAndUpdate(
+                {
+                    _id: "productId",
+                    totalProducts: { $gt: 0 }
+                },
+                {
+                    $inc: { totalProducts: -1 }
+                },
+                {
+                    new: true,
+                    session
+                }
+            );
+
+            if (!counter) {
+                throw new ApiError(
+                    500,
+                    "Product counter is missing or inconsistent"
+                );
+            }
+
+        });
+
+        // 4. Send response after successful commit
         res.status(200).json({
             success: true,
             message: "Product deleted successfully",
@@ -385,8 +456,11 @@ const deleteProductById = async (req, res, next) => {
 
     } catch (error) {
         next(error);
+    } finally {
+        await session.endSession();
     }
 };
+
 
 
 module.exports = { createProduct, getAllProducts, productById, updateProductComplete, updateSomeInfo, deleteAllProducts, deleteProductById };
