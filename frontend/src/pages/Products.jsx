@@ -34,6 +34,38 @@ function Products() {
         }
     };
 
+    const handleDeleteProduct = async (productId) => {
+        const confirmDelete = window.confirm(
+            "Are you sure you want to delete this product?"
+        );
+
+        if (!confirmDelete) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:5000/api/products/deleteProductById/${productId}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "Failed to delete product");
+            }
+
+            alert(result.message);
+
+            await fetchProducts();
+
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     useEffect(() => {
         fetchProducts();
     }, []);
@@ -117,7 +149,20 @@ function Products() {
                                     <td>{product.category}</td>
                                     <td>₹{product.price}</td>
                                     <td>{product.quantity}</td>
-                                    <td>—</td>
+                                    <td>
+                                        <button
+                                            className="edit-product-btn"
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            className="delete-product-btn"
+                                            onClick={() => handleDeleteProduct(product.productId)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
                                 </tr>
                             ))
                         )}
