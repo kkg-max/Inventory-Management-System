@@ -1,36 +1,43 @@
 
 import { useState, useEffect } from "react";
 import "./Products.css";
+import AddProduct from "../components/AddProduct";
 
 function Products() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [showAddProduct, setShowAddProduct] = useState(false);
+
+
+    const fetchProducts = async () => {
+        try {
+            setLoading(true);
+            setError("");
+
+            const response = await fetch(
+                "http://localhost:5000/api/products/allProducts"
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || "Failed to fetch products");
+            }
+
+            setProducts(result.data);
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch(
-                    "http://localhost:5000/api/products/allProducts"
-                );
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.message || "Failed to fetch products");
-                }
-
-                setProducts(result.data);
-            } catch (error) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProducts();
     }, []);
+
 
     const filteredProducts = products.filter((product) => {
         const searchValue = searchTerm.toLowerCase();
@@ -50,7 +57,10 @@ function Products() {
                     <p>Manage and track all your products.</p>
                 </div>
 
-                <button className="add-product-btn">
+                <button
+                    className="add-product-btn"
+                    onClick={() => setShowAddProduct(true)}
+                >
                     + Add Product
                 </button>
             </div>
@@ -114,6 +124,12 @@ function Products() {
                     </tbody>
                 </table>
             </div>
+            {showAddProduct && (
+                <AddProduct
+                    onClose={() => setShowAddProduct(false)}
+                    onProductAdded={fetchProducts}
+                />
+            )}
         </div>
     );
 }

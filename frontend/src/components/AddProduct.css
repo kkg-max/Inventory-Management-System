@@ -1,0 +1,130 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.add-product-modal {
+    background: #ffffff;
+    width: 100%;
+    max-width: 550px;
+    padding: 28px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 25px;
+}
+
+.modal-header h2 {
+    font-size: 22px;
+    color: #172033;
+    margin-bottom: 6px;
+}
+
+.modal-header p {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.modal-close-btn {
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex: 1;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #dbe1ea;
+    border-radius: 7px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #3b82f6;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.cancel-btn,
+.save-product-btn {
+    padding: 11px 18px;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: #ffffff;
+    border: 1px solid #dbe1ea;
+    color: #475569;
+}
+
+.save-product-btn {
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff;
+}
+
+.save-product-btn:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 500px) {
+    .add-product-modal {
+        padding: 20px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
